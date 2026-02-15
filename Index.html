@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flora-Synth | Algorithmic Floristry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Editorial+New&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        glass: {
+                            100: 'rgba(255, 255, 255, 0.4)',
+                            200: 'rgba(255, 255, 255, 0.7)',
+                            300: 'rgba(255, 255, 255, 0.9)',
+                            border: 'rgba(255, 255, 255, 0.6)',
+                        },
+                        void: '#0F172A',
+                        synth: {
+                            cyan: '#22d3ee',
+                            purple: '#c084fc',
+                            pink: '#f472b6'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'float-delayed': 'float 6s ease-in-out 3s infinite',
+                        'spin-slow': 'spin 12s linear infinite',
+                        'marquee': 'marquee 25s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        marquee: {
+                            '0%': { transform: 'translateX(0)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Utilities for that "Hyper-Real" feel */
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            overflow-x: hidden;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        .glass-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-color: rgba(255, 255, 255, 0.9);
+        }
+
+        .text-gradient {
+            background: linear-gradient(to right, #0F172A, #475569);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .synth-gradient {
+            background: linear-gradient(to right, #22d3ee, #c084fc, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+        }
+
+        /* Caustic Light Effect Overlay */
+        .caustics {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0) 0%, rgba(255,255,255,0.8) 100%);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+        }
+        
+        /* Grid Pattern */
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+            mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+        }
+
+        .cursor-glow {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(192, 132, 252, 0.15) 0%, rgba(34, 211, 238, 0.05) 40%, transparent 70%);
+            position: fixed;
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease;
+        }
+    </style>
+</head>
+<body class="antialiased text-slate-800">
+
+    <div class="caustics"></div>
+    <div id="cursor-glow" class="cursor-glow hidden md:block"></div>
+
+    <nav class="fixed top-0 w-full z-50 px-6 py-6 mix-blend-hard-light">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="#" class="text-2xl font-serif font-semibold tracking-tight z-50 relative">Flora<span class="text-slate-400 italic">-Synth</span></a>
+            
+            <div class="hidden md:flex gap-8 bg-white/40 backdrop-blur-xl px-8 py-3 rounded-full border border-white/50 shadow-sm z-50">
+                <a href="#garden" class="font-mono text-xs uppercase tracking-widest hover:text-purple-600 transition-colors">Garden</a>
+                <a href="#science" class="font-mono text-xs uppercase tracking-widest hover:text-purple-600 transition-colors">Science</a>
+                <a href="#specimens" class="font-mono text-xs uppercase tracking-widest hover:text-purple-600 transition-colors">Specimens</a>
+            </div>
+
+            <button class="bg-slate-900 text-white px-6 py-3 rounded-full font-mono text-xs uppercase tracking-widest hover:bg-slate-800 transition-all hover:scale-105 z-50">
+                Login
+            </button>
+        </div>
+    </nav>
+
+    <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        <div class="absolute inset-0 bg-grid z-0"></div>
+        
+        <div class="relative z-10 container mx-auto px-4 flex flex-col md:flex-row items-center justify-between">
+            
+            <div class="md:w-1/2 space-y-8 text-center md:text-left">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 border border-slate-200 backdrop-blur-sm">
+                    <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    <span class="font-mono text-[10px] uppercase tracking-widest text-slate-500">System Online v2.0</span>
+                </div>
+                
+                <h1 class="text-6xl md:text-8xl font-serif leading-[0.9] text-gradient">
+                    Synthesize <br>
+                    <span class="italic font-light text-slate-400">Emotion.</span>
+                </h1>
+                
+                <p class="text-lg md:text-xl text-slate-500 max-w-md font-light leading-relaxed mx-auto md:mx-0">
+                    The world's first procedural floristry engine. Design hyper-real bouquets that never wilt, generated by code, sent via ether.
+                </p>
+
+                <div class="flex flex-col md:flex-row gap-4 pt-4 justify-center md:justify-start">
+                    <button class="group relative px-8 py-4 bg-slate-900 text-white rounded-full overflow-hidden transition-all hover:shadow-2xl hover:scale-105">
+                        <div class="absolute inset-0 w-full h-full bg-gradient-to-r from-cyan-500 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <span class="relative flex items-center gap-2 font-mono text-xs uppercase tracking-widest">
+                            Start Synthesis <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </span>
+                    </button>
+                    <button class="px-8 py-4 glass-panel rounded-full text-slate-700 font-mono text-xs uppercase tracking-widest hover:bg-white/40 transition-all">
+                        View Gallery
+                    </button>
+                </div>
+            </div>
+
+            <div class="md:w-1/2 relative h-[600px] w-full flex items-center justify-center">
+                <div class="relative w-64 h-80 md:w-80 md:h-[500px] bg-gradient-to-b from-white/10 to-white/40 backdrop-blur-sm rounded-[100px] border border-white/60 shadow-2xl animate-float z-20 flex items-center justify-center overflow-hidden">
+                    <div class="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-cyan-100/30 to-purple-100/10 backdrop-blur-md"></div>
+                    <div class="absolute top-10 right-10 w-20 h-40 bg-white/20 rounded-full blur-xl transform rotate-12"></div>
+                    
+                    <div class="text-slate-300 font-mono text-xs text-center p-8 opacity-50">
+                        [WebGL Viewport]<br>Refractive Index: 1.54<br>Light: HdRI Studio
+                    </div>
+                </div>
+                
+                <div class="absolute top-1/4 left-10 w-16 h-16 bg-purple-200/30 rounded-full blur-md animate-float-delayed z-10"></div>
+                <div class="absolute bottom-1/4 right-10 w-24 h-24 bg-cyan-200/30 rounded-full blur-lg animate-float z-30"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="garden" class="py-12 bg-white/30 border-y border-white/50 backdrop-blur-sm overflow-hidden">
+        <div class="flex gap-4 animate-marquee w-max">
+            <div class="flex gap-8 px-4 items-center opacity-70 hover:opacity-100 transition-opacity">
+                <span class="font-serif italic text-2xl text-slate-300">New arrivals:</span>
+                <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-full border border-white">
+                    <div class="w-2 h-2 rounded-full bg-cyan-400"></div>
+                    <span class="font-mono text-xs">@sarah_j • Tokyo • "Neon Tulip"</span>
+                </div>
+                <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-full border border-white">
+                    <div class="w-2 h-2 rounded-full bg-purple-400"></div>
+                    <span class="font-mono text-xs">@kyle_builds • SF • "Chrome Rose"</span>
+                </div>
+                <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-full border border-white">
+                    <div class="w-2 h-2 rounded-full bg-pink-400"></div>
+                    <span class="font-mono text-xs">@elara_v • London • "Glass Lily"</span>
+                </div>
+                 <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-full border border-white">
+                    <div class="w-2 h-2 rounded-full bg-green-400"></div>
+                    <span class="font-mono text-xs">@design_god • NYC • "Void Orchid"</span>
+                </div>
+                 <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-full border border-white">
+                    <div class="w-2 h-2 rounded-full bg-yellow-400"></div>
+                    <span class="font-mono text-xs">@anon_77 • Berlin • "Sun Flare"</span>
+                </div>
+            </div>
+             </div>
+    </section>
+
+    <section id="science" class="py-32 container mx-auto px-4">
+        <div class="grid md:grid-cols-2 gap-20 items-center">
+            
+            <div class="glass-panel p-2 rounded-2xl relative overflow-hidden group">
+                <div class="absolute inset-0 bg-slate-900/5 transition-colors group-hover:bg-slate-900/0"></div>
+                <div class="h-[500px] bg-slate-50 rounded-xl border border-slate-200 relative overflow-hidden flex flex-col">
+                    <div class="h-8 border-b border-slate-200 flex items-center px-4 gap-2 bg-white">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <div class="flex-1 relative font-mono text-xs p-6 text-slate-400">
+                        <p><span class="text-purple-500">function</span> <span class="text-blue-500">generatePetal</span>(seed) {</p>
+                        <p class="pl-4">const curvature = Math.<span class="text-yellow-600">sin</span>(seed * PI);</p>
+                        <p class="pl-4">const texture = <span class="text-cyan-600">new</span> NoiseMaterial();</p>
+                        <p class="pl-4">return <span class="text-green-600">MeshBuilder</span>.create(curvature);</p>
+                        <p>}</p>
+                        
+                        <div class="absolute inset-0 flex items-center justify-center opacity-30">
+                            <svg viewBox="0 0 100 100" class="w-64 h-64 animate-spin-slow text-slate-900 fill-none stroke-current stroke-1">
+                                <path d="M50 50 Q 80 0 50 0 Q 20 0 50 50" />
+                                <path d="M50 50 Q 100 20 100 50 Q 100 80 50 50" />
+                                <path d="M50 50 Q 80 100 50 100 Q 20 100 50 50" />
+                                <path d="M50 50 Q 0 80 0 50 Q 0 20 50 50" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute bottom-6 left-6 right-6 p-4 glass-panel rounded-lg">
+                        <div class="flex justify-between text-[10px] uppercase font-mono mb-2">
+                            <span>Randomness</span>
+                            <span>98%</span>
+                        </div>
+                        <div class="h-1 bg-slate-200 rounded-full overflow-hidden">
+                            <div class="h-full w-[98%] bg-slate-800"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-8">
+                <span class="font-mono text-xs uppercase tracking-widest text-purple-500">Algorithmic Botany</span>
+                <h2 class="text-5xl md:text-6xl font-serif">Nature never repeats itself. <br><span class="text-slate-400 italic">Neither do we.</span></h2>
+                <p class="text-lg text-slate-600 font-light leading-relaxed">
+                    Every bouquet created in Flora-Synth is cryptographically unique. We don't use pre-made images. We use math to grow petals, stems, and leaves in real-time browser space.
+                </p>
+                
+                <ul class="space-y-4 pt-4">
+                    <li class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i data-lucide="fingerprint" class="w-4 h-4"></i></div>
+                        <span class="font-medium text-slate-700">100% Unique Geometry</span>
+                    </li>
+                    <li class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600"><i data-lucide="wind" class="w-4 h-4"></i></div>
+                        <span class="font-medium text-slate-700">Physics-based movement</span>
+                    </li>
+                    <li class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600"><i data-lucide="sparkles" class="w-4 h-4"></i></div>
+                        <span class="font-medium text-slate-700">Iridescent Shader Library</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 bg-slate-900 text-white relative overflow-hidden">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800 to-slate-950"></div>
+        
+        <div class="container mx-auto px-4 relative z-10 text-center space-y-12">
+            <h2 class="text-4xl md:text-5xl font-serif">Tactile Composition</h2>
+            <p class="text-slate-400 max-w-xl mx-auto font-light">Experience the weight of digital flora. Drag, drop, and arrange with physics-enabled precision.</p>
+
+            <div class="max-w-4xl mx-auto h-[400px] border border-white/10 rounded-3xl bg-white/5 backdrop-blur-sm relative flex items-center justify-center overflow-hidden group cursor-crosshair">
+                
+                <div class="absolute bottom-0 w-32 h-40 border-2 border-white/30 rounded-t-full rounded-b-2xl backdrop-blur-md"></div>
+                
+                <div class="absolute top-1/3 right-1/3 transform translate-x-4 translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-1000 ease-in-out">
+                    <div class="w-12 h-12 bg-synth-pink rounded-full blur-md animate-pulse"></div>
+                    <div class="absolute -bottom-4 -right-4 bg-white text-slate-900 px-3 py-1 rounded-full text-[10px] font-mono shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        Drag to arrange
+                    </div>
+                </div>
+                
+                <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20">
+                    <path d="M 600 150 Q 500 300 450 350" stroke="white" stroke-width="2" stroke-dasharray="5,5" fill="none" />
+                </svg>
+            </div>
+
+            <button class="px-8 py-3 border border-white/20 rounded-full font-mono text-xs uppercase tracking-widest hover:bg-white hover:text-slate-900 transition-all">
+                Try the Demo
+            </button>
+        </div>
+    </section>
+
+    <section id="specimens" class="py-32 container mx-auto px-4">
+        <div class="flex justify-between items-end mb-16">
+            <div>
+                <span class="font-mono text-xs uppercase tracking-widest text-slate-400">The Greenhouse</span>
+                <h2 class="text-5xl font-serif mt-2">Exotic Specimens</h2>
+            </div>
+            <a href="#" class="hidden md:flex items-center gap-2 font-mono text-xs uppercase border-b border-slate-300 pb-1 hover:border-slate-900 transition-colors">
+                View All <i data-lucide="arrow-right" class="w-3 h-3"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="glass-card aspect-[3/4] rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent to-white/90 z-10"></div>
+                <div class="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition-transform duration-700">
+                    <div class="w-32 h-32 bg-cyan-200 rounded-full blur-2xl opacity-60"></div>
+                </div>
+                <div class="relative z-20 mt-auto">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h3 class="font-serif text-2xl italic">Crystal Tulip</h3>
+                            <p class="font-mono text-[10px] text-slat
